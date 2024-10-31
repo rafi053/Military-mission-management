@@ -1,34 +1,92 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import React, { useEffect } from 'react'
 import './App.css'
+import AddMission from './components/AddMission/AddMission'
+import ListMissions from './components/ListMissions/ListMissions'
+import axios from 'axios'
+import { Missions } from './types/types'
+const BASE_URL = "https://reactexambackend.onrender.com/missions";
+const API_KEY = "8332575";
 
-function App() {
-  const [count, setCount] = useState(0)
+const App: React.FC = () => {
 
+  const [missions, setMissions] = React.useState<Missions[]>([]);
+
+const getAllMissions = async (): Promise<void> => {
+    try {
+        const response = await axios.get<Missions[]>(`${BASE_URL}/${API_KEY}`);
+        setMissions(response.data);
+      } catch (error) {
+        console.error(error);
+    }
+};
+
+useEffect(() => {
+    getAllMissions();
+}, []);
+ 
+const addMission = async (mission: Missions): Promise<void>  => {
+    try {
+       await axios.post<Missions>(`${BASE_URL}/${API_KEY}`, mission);
+        getAllMissions();
+       
+    } catch (error) {
+        console.error(error);
+        
+    }
+};
+
+const deleteMission = async (id: string): Promise<void> => {
+    try {
+        await axios.delete(`${BASE_URL}/${API_KEY}/${id}`);
+        getAllMissions();
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+const updateStatusMission = async (id: string): Promise<void> => {
+  try {
+    const singleMission: Missions | undefined = missions.find((mission) => mission._id === id);
+    if (!singleMission) {
+      throw new Error("cant find mission with this id");
+    }
+    if (singleMission.status === "Pending") {
+      await axios.post(`${BASE_URL}/${API_KEY}/progress/${id}`, {
+        ...singleMission,
+        status: "In Progress",
+      });
+      getAllMissions();
+      return;
+    }
+    if (singleMission.status === "In Progress") {
+      await axios.post(`${BASE_URL}/${API_KEY}/progress/${id}`, {
+        ...singleMission,
+        status: "Completed",
+      });
+      getAllMissions();
+      return;
+    }
+    if (singleMission.status === "Completed") {
+      await axios.post(`${BASE_URL}/${API_KEY}/progress/${id}`, {
+        ...singleMission,
+        status: "Completed",
+      });
+      getAllMissions();
+      return;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+    
+    
+}
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    
+    <div>
+      <AddMission  addMission={addMission}/>
+      <ListMissions missions={missions} deleteMission={deleteMission} updateStatusMission={updateStatusMission}  />
+      
+    </div>
   )
 }
 
